@@ -54,14 +54,11 @@ A beautiful, interactive regular expression visualizer built with Next.js and Re
 ### Installation
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd regexplain
 
-# Install dependencies
 npm install
 
-# Run the development server
 npm run dev
 ```
 
@@ -167,14 +164,6 @@ regexplain/
 - **AST Node Storage**: Stores AST nodes directly on flow nodes for efficient explanation lookup
 - **Debounced Parsing**: Prevents excessive re-parsing on every keystroke
 - **Dark Mode First**: Designed with dark theme as default
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-MIT
 
 ## Acknowledgments
 
