@@ -1,4 +1,4 @@
-# Regexplain
+# Reg-Exp-Lain
 
 A beautiful, interactive regular expression visualizer built with Next.js and React Flow. Visualize regex patterns as flow diagrams, test strings in real-time, and get contextual explanations for each regex component.
 

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Regexplain - Regex Visualizer",
+  title: "Reg-Exp-Lain - Regex Visualizer",
   description: "Visualize and understand regular expressions with an interactive flow diagram",
 };
 
