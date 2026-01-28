@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -10,17 +10,18 @@ import {
   useEdgesState,
   type Node,
   type Edge,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { useRegexStore } from '@/lib/store/useRegexStore';
-import { astToFlow } from '@/lib/transformer/astToFlow';
-import type { AstNode, Features } from 'regjsparser';
-import StartNode from './nodes/StartNode';
-import MatchNode from './nodes/MatchNode';
-import LoopNode from './nodes/LoopNode';
-import GroupNode from './nodes/GroupNode';
-import EndNode from './nodes/EndNode';
-import AlternationNode from './nodes/AlternationNode';
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { useRegexStore } from "@/lib/store/useRegexStore";
+import { astToFlow } from "@/lib/transformer/astToFlow";
+import type { AstNode, Features } from "regjsparser";
+import StartNode from "./nodes/StartNode";
+import MatchNode from "./nodes/MatchNode";
+import LoopNode from "./nodes/LoopNode";
+import GroupNode from "./nodes/GroupNode";
+import EndNode from "./nodes/EndNode";
+import AlternationNode from "./nodes/AlternationNode";
+import LoopEdge from "./edges/LoopEdge";
 
 const nodeTypes = {
   start: StartNode,
@@ -31,8 +32,18 @@ const nodeTypes = {
   alternation: AlternationNode,
 };
 
+const edgeTypes = {
+  loop: LoopEdge,
+};
+
 export default function VisualizerCanvas() {
-  const { ast, selectedNodeId, explanationNodeId, setSelectedNode, setExplanationNode } = useRegexStore();
+  const {
+    ast,
+    selectedNodeId,
+    explanationNodeId,
+    setSelectedNode,
+    setExplanationNode,
+  } = useRegexStore();
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
     return astToFlow(ast);
@@ -52,7 +63,7 @@ export default function VisualizerCanvas() {
       setSelectedNode(node.id);
       // Pass the AST node from the flow node's data for explanation
       const astNode = node.data?.astNode as AstNode<Features> | undefined;
-      
+
       // Only show explanation if there's an AST node (START/END nodes don't have AST nodes)
       if (astNode) {
         setExplanationNode(node.id, astNode);
@@ -61,14 +72,14 @@ export default function VisualizerCanvas() {
         setExplanationNode(null, null);
       }
     },
-    [setSelectedNode, setExplanationNode]
+    [setSelectedNode, setExplanationNode],
   );
 
   const onNodeMouseEnter = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       setSelectedNode(node.id);
     },
-    [setSelectedNode]
+    [setSelectedNode],
   );
 
   const onNodeMouseLeave = useCallback(() => {
@@ -82,7 +93,7 @@ export default function VisualizerCanvas() {
       nds.map((node) => ({
         ...node,
         selected: node.id === selectedNodeId,
-      }))
+      })),
     );
   }, [selectedNodeId, setNodes]);
 
@@ -99,6 +110,7 @@ export default function VisualizerCanvas() {
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         className="bg-slate-950"
       >
@@ -106,21 +118,22 @@ export default function VisualizerCanvas() {
         <Controls />
         <MiniMap
           nodeColor={(node) => {
-            if (node.type === 'start') return '#10b981';
-            if (node.type === 'end') return '#ef4444';
-            if (node.type === 'loop') return '#a855f7';
-            if (node.type === 'group') return '#f59e0b';
-            return '#64748b';
+            if (node.type === "start") return "#10b981";
+            if (node.type === "end") return "#ef4444";
+            if (node.type === "loop") return "#a855f7";
+            if (node.type === "group") return "#f59e0b";
+            return "#64748b";
           }}
           maskColor="rgba(0, 0, 0, 0.6)"
         />
       </ReactFlow>
-      
+
       {/* Hint overlay */}
       {showHint && (
         <div className="absolute top-4 right-4 bg-slate-800/90 border border-slate-700 rounded-lg p-3 shadow-lg z-10 max-w-xs">
           <p className="text-sm text-slate-300">
-            <span className="font-semibold text-slate-200">💡 Tip:</span> Click on any node in the flow diagram to see its explanation.
+            <span className="font-semibold text-slate-200">💡 Tip:</span> Click
+            on any node in the flow diagram to see its explanation.
           </p>
         </div>
       )}

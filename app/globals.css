@@ -99,3 +99,24 @@ body {
 .react-flow__node.selected {
   opacity: 1 !important;
 }
+
+/* Loop edge animation */
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Custom edge styling for loop edges */
+.react-flow__edge-path {
+  transition: stroke 0.2s ease !important;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke: #a855f7 !important;
+  stroke-width: 2 !important;
+  animation: dashdraw 0.5s linear infinite !important;
+}
