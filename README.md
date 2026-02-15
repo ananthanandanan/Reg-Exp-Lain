@@ -48,6 +48,7 @@ A beautiful, interactive regular expression visualizer built with Next.js and Re
 
 ### 🚧 Future Enhancements
 
+- **ReDoS & performance evil patterns (Phase 5)**: Detect and warn about regex patterns that can cause catastrophic backtracking (ReDoS). Flag dangerous constructs (e.g. nested quantifiers, overlapping alternation) and show a warning in the editor or explanation panel so users can fix or avoid them before using the regex in production.
 - Cross-highlighting between editor and visualizer nodes
 - Multiple regex engine support (Python, PHP)
 - Export/sharing functionality
