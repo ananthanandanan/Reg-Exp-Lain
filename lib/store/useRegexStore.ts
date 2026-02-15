@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import type { RootNode, Features, AstNode } from 'regjsparser';
-import { parseRegex } from '../parser/regexParser';
-import { buildDebugSteps, type DebugStep } from '../debug/regexDebugTracer';
+import { create } from "zustand";
+import type { RootNode, Features, AstNode } from "regjsparser";
+import { parseRegex } from "../parser/regexParser";
+import { buildDebugSteps, type DebugStep } from "../debug/regexDebugTracer";
 
 export interface MatchResultItem {
   index: number;
@@ -50,9 +50,18 @@ interface RegexStore {
   clearBatchTestStrings: () => void;
   parseRegex: () => void;
   setSelectedNode: (nodeId: string | null) => void;
-  setSelectedEditorRange: (range: { start: number; end: number } | null) => void;
-  setExplanationNode: (nodeId: string | null, astNode?: AstNode<Features> | null) => void;
-  testMatch: (testString: string) => { matches: boolean; groups: string[]; error: string | null };
+  setSelectedEditorRange: (
+    range: { start: number; end: number } | null,
+  ) => void;
+  setExplanationNode: (
+    nodeId: string | null,
+    astNode?: AstNode<Features> | null,
+  ) => void;
+  testMatch: (testString: string) => {
+    matches: boolean;
+    groups: string[];
+    error: string | null;
+  };
   testMatchAll: (testString: string) => MatchAllResult;
   startDebug: (testString: string) => void;
   stopDebug: () => void;
@@ -63,9 +72,9 @@ interface RegexStore {
 
 export const useRegexStore = create<RegexStore>((set, get) => ({
   // Initial state
-  regexInput: '',
-  safeString: '',
-  deniedString: '',
+  regexInput: "",
+  safeString: "",
+  deniedString: "",
   batchTestStrings: [],
   ast: null,
   error: null,
@@ -76,7 +85,7 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
   debugMode: false,
   debugSteps: [],
   debugStepIndex: 0,
-  debugTestString: '',
+  debugTestString: "",
 
   // Actions
   setRegexInput: (input: string) => {
@@ -116,21 +125,24 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
     set({ selectedEditorRange: range });
   },
 
-  setExplanationNode: (nodeId: string | null, astNode?: AstNode<Features> | null) => {
+  setExplanationNode: (
+    nodeId: string | null,
+    astNode?: AstNode<Features> | null,
+  ) => {
     set({ explanationNodeId: nodeId, explanationAstNode: astNode ?? null });
   },
 
   testMatch: (testString: string) => {
     const { regexInput } = get();
     if (!regexInput) {
-      return { matches: false, groups: [], error: 'No regex pattern provided' };
+      return { matches: false, groups: [], error: "No regex pattern provided" };
     }
 
     try {
       // Remove leading/trailing slashes if present
       let cleanedRegex = regexInput.trim();
-      if (cleanedRegex.startsWith('/')) {
-        const lastSlash = cleanedRegex.lastIndexOf('/');
+      if (cleanedRegex.startsWith("/")) {
+        const lastSlash = cleanedRegex.lastIndexOf("/");
         if (lastSlash > 0) {
           cleanedRegex = cleanedRegex.slice(1, lastSlash);
         }
@@ -149,7 +161,7 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
       return {
         matches: false,
         groups: [],
-        error: error instanceof Error ? error.message : 'Invalid regex pattern',
+        error: error instanceof Error ? error.message : "Invalid regex pattern",
       };
     }
   },
@@ -157,25 +169,31 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
   testMatchAll: (testString: string): MatchAllResult => {
     const { regexInput } = get();
     if (!regexInput) {
-      return { matches: false, error: 'No regex pattern provided', matchResults: [] };
+      return {
+        matches: false,
+        error: "No regex pattern provided",
+        matchResults: [],
+      };
     }
 
     try {
       let cleanedRegex = regexInput.trim();
-      if (cleanedRegex.startsWith('/')) {
-        const lastSlash = cleanedRegex.lastIndexOf('/');
+      if (cleanedRegex.startsWith("/")) {
+        const lastSlash = cleanedRegex.lastIndexOf("/");
         if (lastSlash > 0) {
           cleanedRegex = cleanedRegex.slice(1, lastSlash);
         }
       }
 
       // Use 'g' flag so matchAll finds all matches
-      const regex = new RegExp(cleanedRegex, 'g');
+      const regex = new RegExp(cleanedRegex, "g");
       const iter = testString.matchAll(regex);
       const matchResults: MatchResultItem[] = [];
       let index = 0;
       for (const m of iter) {
-        const groups = (m as RegExpMatchArray).slice(1).filter((g) => g !== undefined) as string[];
+        const groups = (m as RegExpMatchArray)
+          .slice(1)
+          .filter((g) => g !== undefined) as string[];
         matchResults.push({
           index: index++,
           start: m.index!,
@@ -192,7 +210,7 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
     } catch (error) {
       return {
         matches: false,
-        error: error instanceof Error ? error.message : 'Invalid regex pattern',
+        error: error instanceof Error ? error.message : "Invalid regex pattern",
         matchResults: [],
       };
     }
@@ -201,7 +219,12 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
   startDebug: (testString: string) => {
     const { ast } = get();
     if (!ast) {
-      set({ debugMode: true, debugSteps: [], debugStepIndex: 0, debugTestString: testString });
+      set({
+        debugMode: true,
+        debugSteps: [],
+        debugStepIndex: 0,
+        debugTestString: testString,
+      });
       return;
     }
     const steps = buildDebugSteps(ast, testString);
@@ -218,7 +241,7 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
       debugMode: false,
       debugSteps: [],
       debugStepIndex: 0,
-      debugTestString: '',
+      debugTestString: "",
     });
   },
 

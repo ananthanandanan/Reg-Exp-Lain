@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import EditorPane from '@/components/EditorPane';
-import SandboxPane from '@/components/SandboxPane';
-import VisualizerCanvas from '@/components/VisualizerCanvas';
-import ExplanationPanel from '@/components/ExplanationPanel';
-import { useRegexStore } from '@/lib/store/useRegexStore';
-import Image from 'next/image';
+import EditorPane from "@/components/EditorPane";
+import SandboxPane from "@/components/SandboxPane";
+import VisualizerCanvas from "@/components/VisualizerCanvas";
+import ExplanationPanel from "@/components/ExplanationPanel";
+import { useRegexStore } from "@/lib/store/useRegexStore";
+import Image from "next/image";
 
 export default function Home() {
   const { explanationNodeId } = useRegexStore();
@@ -37,10 +37,10 @@ export default function Home() {
       </div>
 
       {/* Right Column - 70% width, adjust for explanation panel */}
-      <div 
+      <div
         className="flex-1 relative transition-all duration-300"
-        style={{ 
-          marginRight: isExplanationOpen ? '384px' : '0' 
+        style={{
+          marginRight: isExplanationOpen ? "384px" : "0",
         }}
       >
         <VisualizerCanvas />

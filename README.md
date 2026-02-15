@@ -14,7 +14,7 @@ A beautiful, interactive regular expression visualizer built with Next.js and Re
   - Pan, zoom, and minimap navigation
   - Dark theme with Linear.app aesthetic
 
-- **Regex Editor**: 
+- **Regex Editor**:
   - Real-time parsing with error handling
   - Syntax validation with inline error messages
   - Debounced input for performance
@@ -48,7 +48,7 @@ A beautiful, interactive regular expression visualizer built with Next.js and Re
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm, yarn, pnpm, or bun
 
 ### Installation

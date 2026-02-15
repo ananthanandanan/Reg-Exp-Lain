@@ -17,7 +17,10 @@ import { astToFlow } from "@/lib/transformer/astToFlow";
 import type { DebugStep } from "@/lib/debug/regexDebugTracer";
 import type { AstNode, Features } from "regjsparser";
 
-function getNodeIdForStep(step: DebugStep | undefined, nodes: Node[]): string | null {
+function getNodeIdForStep(
+  step: DebugStep | undefined,
+  nodes: Node[],
+): string | null {
   if (!step) return null;
   if (step.astNodeRef === "start") return "start";
   if (step.astNodeRef === "end") return "end";
@@ -106,7 +109,10 @@ export default function VisualizerCanvas() {
     return getNodeIdForStep(step, nodes);
   }, [debugMode, debugSteps, debugStepIndex, nodes]);
 
-  const effectiveSelectedNodeId = debugMode && debugHighlightNodeId !== null ? debugHighlightNodeId : selectedNodeId;
+  const effectiveSelectedNodeId =
+    debugMode && debugHighlightNodeId !== null
+      ? debugHighlightNodeId
+      : selectedNodeId;
 
   // Update node selection state
   useEffect(() => {

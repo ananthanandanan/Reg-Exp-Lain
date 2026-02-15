@@ -1,6 +1,6 @@
-import type { RootNode, AstNode, Features } from 'regjsparser';
+import type { RootNode, AstNode, Features } from "regjsparser";
 
-export type DebugStepRef = AstNode<Features> | 'start' | 'end';
+export type DebugStepRef = AstNode<Features> | "start" | "end";
 
 export interface DebugStep {
   stringIndex: number;
@@ -11,31 +11,31 @@ export interface DebugStep {
  * Check if a single code point matches a character class body item.
  */
 function matchesCharacterClassBody(
-  body: import('regjsparser').CharacterClassBody,
-  codePoint: number
+  body: import("regjsparser").CharacterClassBody,
+  codePoint: number,
 ): boolean {
-  if (body.type === 'value') {
+  if (body.type === "value") {
     return body.codePoint === codePoint;
   }
-  if (body.type === 'characterClassRange') {
+  if (body.type === "characterClassRange") {
     const min = body.min.codePoint;
     const max = body.max.codePoint;
     return codePoint >= min && codePoint <= max;
   }
-  if (body.type === 'characterClassEscape') {
+  if (body.type === "characterClassEscape") {
     const ch = String.fromCodePoint(codePoint);
     switch (body.value) {
-      case 'd':
+      case "d":
         return /\d/.test(ch);
-      case 'D':
+      case "D":
         return /\D/.test(ch);
-      case 'w':
+      case "w":
         return /\w/.test(ch);
-      case 'W':
+      case "W":
         return /\W/.test(ch);
-      case 's':
+      case "s":
         return /\s/.test(ch);
-      case 'S':
+      case "S":
         return /\S/.test(ch);
       default:
         return false;
@@ -48,10 +48,10 @@ function matchesCharacterClassBody(
  * Check if code point matches the character class (positive or negative).
  */
 function matchesCharacterClass(
-  node: import('regjsparser').CharacterClass<Features>,
-  codePoint: number
+  node: import("regjsparser").CharacterClass<Features>,
+  codePoint: number,
 ): boolean {
-  let inClass = node.body.some((b) => matchesCharacterClassBody(b, codePoint));
+  const inClass = node.body.some((b) => matchesCharacterClassBody(b, codePoint));
   return node.negative ? !inClass : inClass;
 }
 
@@ -64,7 +64,7 @@ function matchRepeat(
   pos: number,
   steps: DebugStep[],
   root: RootNode<Features>,
-  count: number
+  count: number,
 ): number | null {
   let p = pos;
   for (let i = 0; i < count; i++) {
@@ -85,18 +85,19 @@ function matchAlternativeSequence(
   pos: number,
   steps: DebugStep[],
   root: RootNode<Features>,
-  startIndex: number
+  startIndex: number,
 ): number | null {
   if (startIndex >= body.length) return pos;
   const node = body[startIndex];
 
-  if (node.type === 'quantifier') {
+  if (node.type === "quantifier") {
     const child = node.body[0];
     const min = node.min;
     const maxLimit = node.max ?? Infinity;
-    const maxTry = typeof maxLimit === 'number'
-      ? Math.min(maxLimit, str.length - pos)
-      : str.length - pos;
+    const maxTry =
+      typeof maxLimit === "number"
+        ? Math.min(maxLimit, str.length - pos)
+        : str.length - pos;
     const savedLen = steps.length;
     steps.push({ stringIndex: pos, astNodeRef: node });
     // Greedy: try from max down to min so that the rest of the pattern can match
@@ -104,7 +105,14 @@ function matchAlternativeSequence(
       steps.length = savedLen + 1;
       const p = matchRepeat(child, str, pos, steps, root, k);
       if (p !== null) {
-        const result = matchAlternativeSequence(body, str, p, steps, root, startIndex + 1);
+        const result = matchAlternativeSequence(
+          body,
+          str,
+          p,
+          steps,
+          root,
+          startIndex + 1,
+        );
         if (result !== null) return result;
       }
     }
@@ -126,25 +134,39 @@ function match(
   str: string,
   pos: number,
   steps: DebugStep[],
-  root: RootNode<Features>
+  root: RootNode<Features>,
 ): number | null {
   const len = str.length;
 
-  if (node.type === 'alternative') {
+  if (node.type === "alternative") {
     steps.push({ stringIndex: pos, astNodeRef: node });
-    const result = matchAlternativeSequence(node.body, str, pos, steps, root, 0);
+    const result = matchAlternativeSequence(
+      node.body,
+      str,
+      pos,
+      steps,
+      root,
+      0,
+    );
     if (result === null) steps.pop();
     return result;
   }
 
-  if (node.type === 'group') {
+  if (node.type === "group") {
     steps.push({ stringIndex: pos, astNodeRef: node });
-    const result = matchAlternativeSequence(node.body, str, pos, steps, root, 0);
+    const result = matchAlternativeSequence(
+      node.body,
+      str,
+      pos,
+      steps,
+      root,
+      0,
+    );
     if (result === null) steps.pop();
     return result;
   }
 
-  if (node.type === 'quantifier') {
+  if (node.type === "quantifier") {
     steps.push({ stringIndex: pos, astNodeRef: node });
     const child = node.body[0];
     const min = node.min;
@@ -177,7 +199,7 @@ function match(
     return tryMore(min, p);
   }
 
-  if (node.type === 'disjunction') {
+  if (node.type === "disjunction") {
     steps.push({ stringIndex: pos, astNodeRef: node });
     for (const alt of node.body) {
       const saved = steps.length;
@@ -189,18 +211,18 @@ function match(
     return null;
   }
 
-  if (node.type === 'anchor') {
+  if (node.type === "anchor") {
     steps.push({ stringIndex: pos, astNodeRef: node });
     let ok = false;
-    if (node.kind === 'start') ok = pos === 0;
-    else if (node.kind === 'end') ok = pos === len;
-    else if (node.kind === 'boundary') {
-      const prev = pos === 0 ? '' : str[pos - 1];
-      const curr = pos >= len ? '' : str[pos];
+    if (node.kind === "start") ok = pos === 0;
+    else if (node.kind === "end") ok = pos === len;
+    else if (node.kind === "boundary") {
+      const prev = pos === 0 ? "" : str[pos - 1];
+      const curr = pos >= len ? "" : str[pos];
       ok = /\w/.test(prev) !== /\w/.test(curr);
-    } else if (node.kind === 'not-boundary') {
-      const prev = pos === 0 ? '' : str[pos - 1];
-      const curr = pos >= len ? '' : str[pos];
+    } else if (node.kind === "not-boundary") {
+      const prev = pos === 0 ? "" : str[pos - 1];
+      const curr = pos >= len ? "" : str[pos];
       ok = /\w/.test(prev) === /\w/.test(curr);
     }
     if (!ok) {
@@ -210,7 +232,7 @@ function match(
     return pos;
   }
 
-  if (node.type === 'value') {
+  if (node.type === "value") {
     steps.push({ stringIndex: pos, astNodeRef: node });
     if (pos < len && str.codePointAt(pos) === node.codePoint) {
       const charLen = node.codePoint <= 0xffff ? 1 : 2;
@@ -220,7 +242,7 @@ function match(
     return null;
   }
 
-  if (node.type === 'dot') {
+  if (node.type === "dot") {
     steps.push({ stringIndex: pos, astNodeRef: node });
     if (pos < len) {
       const cp = str.codePointAt(pos)!;
@@ -231,7 +253,7 @@ function match(
     return null;
   }
 
-  if (node.type === 'characterClass') {
+  if (node.type === "characterClass") {
     steps.push({ stringIndex: pos, astNodeRef: node });
     if (pos < len) {
       const cp = str.codePointAt(pos)!;
@@ -245,20 +267,33 @@ function match(
   }
 
   // Standalone \d \D \w \W \s \S (parsed as characterClassEscape when outside [...])
-  if (node.type === 'characterClassEscape') {
+  if (node.type === "characterClassEscape") {
     steps.push({ stringIndex: pos, astNodeRef: node });
     if (pos < len) {
       const cp = str.codePointAt(pos)!;
       const ch = String.fromCodePoint(cp);
       let ok = false;
       switch (node.value) {
-        case 'd': ok = /\d/.test(ch); break;
-        case 'D': ok = /\D/.test(ch); break;
-        case 'w': ok = /\w/.test(ch); break;
-        case 'W': ok = /\W/.test(ch); break;
-        case 's': ok = /\s/.test(ch); break;
-        case 'S': ok = /\S/.test(ch); break;
-        default: ok = false;
+        case "d":
+          ok = /\d/.test(ch);
+          break;
+        case "D":
+          ok = /\D/.test(ch);
+          break;
+        case "w":
+          ok = /\w/.test(ch);
+          break;
+        case "W":
+          ok = /\W/.test(ch);
+          break;
+        case "s":
+          ok = /\s/.test(ch);
+          break;
+        case "S":
+          ok = /\S/.test(ch);
+          break;
+        default:
+          ok = false;
       }
       if (ok) {
         const charLen = cp <= 0xffff ? 1 : 2;
@@ -281,12 +316,12 @@ function match(
  */
 export function buildDebugSteps(
   ast: RootNode<Features> | null,
-  str: string
+  str: string,
 ): DebugStep[] {
   if (!ast) return [];
 
   const matchRootAt = (pos: number, steps: DebugStep[]): number | null => {
-    if (ast.type === 'disjunction') {
+    if (ast.type === "disjunction") {
       for (const alt of ast.body) {
         const saved = steps.length;
         const next = match(alt, str, pos, steps, ast);
@@ -298,7 +333,7 @@ export function buildDebugSteps(
       return null;
     }
 
-    if (ast.type === 'alternative') {
+    if (ast.type === "alternative") {
       return matchAlternativeSequence(ast.body, str, pos, steps, ast, 0);
     }
 
@@ -307,10 +342,10 @@ export function buildDebugSteps(
 
   // Match like RegExp.exec: scan from left to right for the first successful start index.
   for (let pos = 0; pos <= str.length; pos++) {
-    const steps: DebugStep[] = [{ stringIndex: pos, astNodeRef: 'start' }];
+    const steps: DebugStep[] = [{ stringIndex: pos, astNodeRef: "start" }];
     const next = matchRootAt(pos, steps);
     if (next !== null) {
-      steps.push({ stringIndex: next, astNodeRef: 'end' });
+      steps.push({ stringIndex: next, astNodeRef: "end" });
       return steps;
     }
   }
