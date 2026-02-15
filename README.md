@@ -155,8 +155,34 @@ regexplain/
 
 - TypeScript for type safety
 - ESLint for code quality
+- Prettier for formatting
+- Husky + lint-staged for pre-commit checks
 - Tailwind CSS for styling
 - Functional components with hooks
+
+### Code Quality Commands
+
+```bash
+# Lint entire project
+npm run lint
+
+# Format entire project
+npm run format
+
+# Check formatting without writing
+npm run format:check
+
+# Run staged-file tasks manually
+npm run lint-staged
+```
+
+### Git Hooks (Husky)
+
+- `prepare` script installs Husky hooks after `npm install`
+- Pre-commit hook runs `npm run lint-staged`
+- Current `lint-staged` config:
+  - `*.{js,jsx,ts,tsx,mjs,cjs}` -> `eslint --fix`
+  - `*.{json,md,css,scss,yml,yaml}` -> `prettier --write`
 
 ### Key Design Decisions
 
