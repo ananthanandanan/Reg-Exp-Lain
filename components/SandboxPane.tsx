@@ -50,24 +50,27 @@ function MatchHighlight({
   matchResults,
   isMatch,
   label,
+  variant = "safe",
 }: {
   text: string;
   matchResults: MatchResultItem[];
   isMatch: boolean;
   label: string;
+  variant?: "safe" | "denied";
 }) {
   const segments = segmentsFromMatchResults(text, matchResults);
   if (!text) return null;
+  const matchClass =
+    variant === "denied"
+      ? "bg-red-500/30 text-red-200 rounded px-0.5"
+      : "bg-green-500/30 text-green-200 rounded px-0.5";
   return (
     <div className="mt-1.5 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
       <div className="text-xs text-slate-400 mb-1">{label}</div>
       <div className="font-mono text-sm text-slate-200 break-all leading-relaxed">
         {segments.map((seg, i) =>
           seg.type === "match" ? (
-            <span
-              key={i}
-              className="bg-green-500/30 text-green-200 rounded px-0.5"
-            >
+            <span key={i} className={matchClass}>
               {seg.text}
             </span>
           ) : (
@@ -83,10 +86,12 @@ function MatchDetails({
   matchResults,
   error,
   emptyMessage,
+  variant = "safe",
 }: {
   matchResults: MatchResultItem[];
   error: string | null;
   emptyMessage?: string;
+  variant?: "safe" | "denied";
 }) {
   if (error) return null;
   if (matchResults.length === 0) {
@@ -101,18 +106,23 @@ function MatchDetails({
     }
     return null;
   }
+  const borderClass =
+    variant === "denied"
+      ? "border-l-2 border-red-500/50 pl-2"
+      : "border-l-2 border-green-500/50 pl-2";
+  const headerClass =
+    variant === "denied"
+      ? "text-xs font-medium text-red-400/90 mb-2"
+      : "text-xs font-medium text-slate-400 mb-2";
   return (
     <div className="mt-2 rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-2">
-      <div className="text-xs font-medium text-slate-400 mb-2">
+      <div className={headerClass}>
         Match details ({matchResults.length} match
         {matchResults.length !== 1 ? "es" : ""})
       </div>
       <ul className="space-y-2 max-h-32 overflow-y-auto">
         {matchResults.map((m, i) => (
-          <li
-            key={i}
-            className="text-xs font-mono text-slate-300 border-l-2 border-green-500/50 pl-2"
-          >
+          <li key={i} className={`text-xs font-mono text-slate-300 ${borderClass}`}>
             <span className="text-slate-500">#{m.index}</span> [{m.start},{" "}
             {m.end}) &ldquo;{m.match}&rdquo;
             {m.groups.length > 0 && (
@@ -279,32 +289,43 @@ export default function SandboxPane() {
           <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3">
             <div className="text-xs font-medium text-slate-400 mb-2">
               Batch: {batchTestStrings.length} line
-              {batchTestStrings.length !== 1 ? "s" : ""} (click to use as Safe)
+              {batchTestStrings.length !== 1 ? "s" : ""} (use as Safe or Denied)
             </div>
             <ul className="space-y-1 max-h-24 overflow-y-auto">
               {batchTestStrings.slice(0, 50).map((line, i) => {
                 const res = testMatch(line);
                 return (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onClick={() => setSafeString(line)}
-                      className="w-full text-left text-xs font-mono px-2 py-1 rounded hover:bg-slate-800 flex items-center gap-2"
+                  <li key={i} className="flex items-center gap-1 group">
+                    <span
+                      className={
+                        res.matches ? "text-green-400 shrink-0" : "text-slate-500 shrink-0"
+                      }
+                      title={res.matches ? "Matches regex" : "No match"}
                     >
-                      <span
-                        className={
-                          res.matches ? "text-green-400" : "text-slate-500"
-                        }
+                      {res.matches ? "✓" : "○"}
+                    </span>
+                    <span
+                      className="text-slate-300 truncate flex-1 text-xs font-mono min-w-0"
+                      title={line}
+                    >
+                      {line.length > 60 ? line.slice(0, 60) + "…" : line}
+                    </span>
+                    <div className="flex shrink-0 gap-0.5 opacity-70 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => setSafeString(line)}
+                        className="text-xs px-1.5 py-0.5 rounded border border-green-500/50 text-green-400 hover:bg-green-500/20 transition-colors"
                       >
-                        {res.matches ? "✓" : "○"}
-                      </span>
-                      <span
-                        className="text-slate-300 truncate flex-1"
-                        title={line}
+                        Safe
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeniedString(line)}
+                        className="text-xs px-1.5 py-0.5 rounded border border-red-500/50 text-red-400 hover:bg-red-500/20 transition-colors"
                       >
-                        {line.length > 60 ? line.slice(0, 60) + "…" : line}
-                      </span>
-                    </button>
+                        Denied
+                      </button>
+                    </div>
                   </li>
                 );
               })}
@@ -495,6 +516,7 @@ export default function SandboxPane() {
               matchResults={deniedMatchAll?.matchResults ?? []}
               isMatch={deniedResult?.matches ?? false}
               label="Highlight"
+              variant="denied"
             />
             <MatchDetails
               matchResults={deniedMatchAll?.matchResults ?? []}
@@ -504,6 +526,7 @@ export default function SandboxPane() {
                   ? "No matches – correctly rejected"
                   : undefined
               }
+              variant="denied"
             />
           </div>
         </div>

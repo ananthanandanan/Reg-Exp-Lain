@@ -1,0 +1,5 @@
+hello@test.com
+not-an-email
+user.name@domain.org
+invalid@
+contact@company.co
