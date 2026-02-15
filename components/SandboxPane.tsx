@@ -109,6 +109,14 @@ export default function SandboxPane() {
     batchTestStrings,
     setBatchTestStrings,
     clearBatchTestStrings,
+    debugMode,
+    debugSteps,
+    debugStepIndex,
+    debugTestString,
+    startDebug,
+    stopDebug,
+    debugNextStep,
+    debugPrevStep,
   } = useRegexStore();
 
   const [safeResult, setSafeResult] = useState<{
@@ -303,8 +311,71 @@ export default function SandboxPane() {
               label="Highlight"
             />
             <MatchDetails matchResults={safeMatchAll?.matchResults ?? []} error={safeMatchAll?.error ?? null} />
+            {!debugMode && safeString.trim() && (
+              <button
+                type="button"
+                onClick={() => startDebug(safeString)}
+                className="mt-2 text-xs px-2 py-1.5 rounded-md border border-violet-500/60 text-violet-300 hover:bg-violet-500/20 transition-colors"
+              >
+                Step through match
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Step-by-step debug bar */}
+        {debugMode && (
+          <div className="rounded-lg border border-violet-500/50 bg-slate-900/80 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-xs font-medium text-violet-300">Step-by-step debug</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={debugPrevStep}
+                  disabled={debugStepIndex <= 0}
+                  className="text-xs px-2 py-1 rounded border border-slate-600 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ← Prev
+                </button>
+                <span className="text-xs text-slate-400 min-w-16 text-center">
+                  {debugSteps.length > 0 ? `${debugStepIndex + 1} / ${debugSteps.length}` : '0 / 0'}
+                </span>
+                <button
+                  type="button"
+                  onClick={debugNextStep}
+                  disabled={debugSteps.length === 0 || debugStepIndex >= debugSteps.length - 1}
+                  className="text-xs px-2 py-1 rounded border border-slate-600 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next →
+                </button>
+                <button
+                  type="button"
+                  onClick={stopDebug}
+                  className="text-xs px-2 py-1 rounded border border-red-500/60 text-red-300 hover:bg-red-500/20"
+                >
+                  Stop
+                </button>
+              </div>
+            </div>
+            {debugSteps.length === 0 ? (
+              <p className="text-xs text-slate-400">No match — enter a string that matches the regex to step through.</p>
+            ) : (
+              <div className="rounded border border-slate-700 bg-slate-950/80 px-3 py-2">
+                <div className="text-xs text-slate-400 mb-1">String position (cursor at step)</div>
+                <div className="font-mono text-sm text-slate-200 break-all leading-relaxed flex flex-wrap items-center">
+                  {Array.from(debugTestString).map((char, i) => (
+                    <span key={i} className={i === (debugSteps[debugStepIndex]?.stringIndex ?? 0) ? 'bg-violet-500/40 text-violet-200 rounded px-0.5' : ''}>
+                      {char === ' ' ? '\u00A0' : char}
+                    </span>
+                  ))}
+                  {(debugSteps[debugStepIndex]?.stringIndex ?? 0) >= debugTestString.length && (
+                    <span className="bg-violet-500/40 text-violet-200 rounded px-0.5 ml-0.5">│</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Denied String Input */}
         <div className="flex flex-col">

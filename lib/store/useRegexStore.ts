@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { RootNode, Features, AstNode } from 'regjsparser';
 import { parseRegex } from '../parser/regexParser';
+import { buildDebugSteps, type DebugStep } from '../debug/regexDebugTracer';
 
 export interface MatchResultItem {
   index: number;
@@ -35,6 +36,12 @@ interface RegexStore {
   explanationNodeId: string | null;
   explanationAstNode: AstNode<Features> | null;
 
+  // Step-by-step debug state
+  debugMode: boolean;
+  debugSteps: DebugStep[];
+  debugStepIndex: number;
+  debugTestString: string;
+
   // Actions
   setRegexInput: (input: string) => void;
   setSafeString: (input: string) => void;
@@ -47,6 +54,11 @@ interface RegexStore {
   setExplanationNode: (nodeId: string | null, astNode?: AstNode<Features> | null) => void;
   testMatch: (testString: string) => { matches: boolean; groups: string[]; error: string | null };
   testMatchAll: (testString: string) => MatchAllResult;
+  startDebug: (testString: string) => void;
+  stopDebug: () => void;
+  debugNextStep: () => void;
+  debugPrevStep: () => void;
+  setDebugStepIndex: (index: number) => void;
 }
 
 export const useRegexStore = create<RegexStore>((set, get) => ({
@@ -61,6 +73,10 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
   selectedEditorRange: null,
   explanationNodeId: null,
   explanationAstNode: null,
+  debugMode: false,
+  debugSteps: [],
+  debugStepIndex: 0,
+  debugTestString: '',
 
   // Actions
   setRegexInput: (input: string) => {
@@ -180,5 +196,49 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
         matchResults: [],
       };
     }
+  },
+
+  startDebug: (testString: string) => {
+    const { ast } = get();
+    if (!ast) {
+      set({ debugMode: true, debugSteps: [], debugStepIndex: 0, debugTestString: testString });
+      return;
+    }
+    const steps = buildDebugSteps(ast, testString);
+    set({
+      debugMode: true,
+      debugSteps: steps,
+      debugStepIndex: 0,
+      debugTestString: testString,
+    });
+  },
+
+  stopDebug: () => {
+    set({
+      debugMode: false,
+      debugSteps: [],
+      debugStepIndex: 0,
+      debugTestString: '',
+    });
+  },
+
+  debugNextStep: () => {
+    const { debugSteps, debugStepIndex } = get();
+    if (debugStepIndex < debugSteps.length - 1) {
+      set({ debugStepIndex: debugStepIndex + 1 });
+    }
+  },
+
+  debugPrevStep: () => {
+    const { debugStepIndex } = get();
+    if (debugStepIndex > 0) {
+      set({ debugStepIndex: debugStepIndex - 1 });
+    }
+  },
+
+  setDebugStepIndex: (index: number) => {
+    const { debugSteps } = get();
+    const clamped = Math.max(0, Math.min(index, debugSteps.length - 1));
+    set({ debugStepIndex: clamped });
   },
 }));

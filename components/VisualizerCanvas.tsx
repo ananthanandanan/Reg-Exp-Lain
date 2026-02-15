@@ -14,7 +14,16 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useRegexStore } from "@/lib/store/useRegexStore";
 import { astToFlow } from "@/lib/transformer/astToFlow";
+import type { DebugStep } from "@/lib/debug/regexDebugTracer";
 import type { AstNode, Features } from "regjsparser";
+
+function getNodeIdForStep(step: DebugStep | undefined, nodes: Node[]): string | null {
+  if (!step) return null;
+  if (step.astNodeRef === "start") return "start";
+  if (step.astNodeRef === "end") return "end";
+  const found = nodes.find((n) => n.data?.astNode === step.astNodeRef);
+  return found?.id ?? null;
+}
 import StartNode from "./nodes/StartNode";
 import MatchNode from "./nodes/MatchNode";
 import LoopNode from "./nodes/LoopNode";
@@ -43,6 +52,9 @@ export default function VisualizerCanvas() {
     explanationNodeId,
     setSelectedNode,
     setExplanationNode,
+    debugMode,
+    debugSteps,
+    debugStepIndex,
   } = useRegexStore();
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
@@ -87,17 +99,26 @@ export default function VisualizerCanvas() {
     // setSelectedNode(null);
   }, []);
 
+  // Resolve debug step to node and drive selection when in debug mode
+  const debugHighlightNodeId = useMemo(() => {
+    if (!debugMode || debugSteps.length === 0) return null;
+    const step = debugSteps[debugStepIndex];
+    return getNodeIdForStep(step, nodes);
+  }, [debugMode, debugSteps, debugStepIndex, nodes]);
+
+  const effectiveSelectedNodeId = debugMode && debugHighlightNodeId !== null ? debugHighlightNodeId : selectedNodeId;
+
   // Update node selection state
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => ({
         ...node,
-        selected: node.id === selectedNodeId,
+        selected: node.id === effectiveSelectedNodeId,
       })),
     );
-  }, [selectedNodeId, setNodes]);
+  }, [effectiveSelectedNodeId, setNodes]);
 
-  const showHint = !explanationNodeId && ast && nodes.length > 0;
+  const showHint = !explanationNodeId && ast && nodes.length > 0 && !debugMode;
 
   return (
     <div className="w-full h-full bg-slate-950 relative">
