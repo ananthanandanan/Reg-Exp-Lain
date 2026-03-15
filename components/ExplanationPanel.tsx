@@ -5,8 +5,12 @@ import { useRegexStore } from "@/lib/store/useRegexStore";
 import { getExplanationFromAstNode } from "@/lib/transformer/astToExplanation";
 
 export default function ExplanationPanel() {
-  const { explanationNodeId, explanationAstNode, setExplanationNode } =
-    useRegexStore();
+  const {
+    explanationNodeId,
+    explanationAstNode,
+    redosAnalysis,
+    setExplanationNode,
+  } = useRegexStore();
 
   const explanation = useMemo(() => {
     if (!explanationNodeId || !explanationAstNode) return null;
@@ -14,6 +18,28 @@ export default function ExplanationPanel() {
   }, [explanationNodeId, explanationAstNode]);
 
   const isOpen = !!explanationNodeId && !!explanation;
+
+  const nodeRiskFindings = useMemo(() => {
+    if (!redosAnalysis || !explanationAstNode) {
+      return [];
+    }
+
+    return redosAnalysis.findings.filter((finding) => {
+      if (finding.nodeRef === explanationAstNode) {
+        return true;
+      }
+
+      if (!finding.range || !Array.isArray(explanationAstNode.range)) {
+        return false;
+      }
+
+      return (
+        finding.nodeType === explanationAstNode.type &&
+        finding.range[0] === explanationAstNode.range[0] &&
+        finding.range[1] === explanationAstNode.range[1]
+      );
+    });
+  }, [redosAnalysis, explanationAstNode]);
 
   return (
     <div
@@ -59,6 +85,43 @@ export default function ExplanationPanel() {
                 <code className="text-xs text-slate-300 font-mono">
                   {explanation.astNode.type}
                 </code>
+              </div>
+            )}
+            {nodeRiskFindings.length > 0 && (
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/40 space-y-3">
+                <h3 className="text-sm font-semibold text-red-300">
+                  Performance risk notes
+                </h3>
+                {nodeRiskFindings.map((finding) => (
+                  <div key={finding.id} className="space-y-1">
+                    <p className="text-xs font-semibold text-red-200">
+                      {finding.title}
+                    </p>
+                    <p className="text-xs text-red-100/90">{finding.reason}</p>
+                    <p className="text-xs text-red-100/80">
+                      Suggestion: {finding.suggestion}
+                    </p>
+                    {finding.alternatives.length > 0 && (
+                      <ul className="space-y-1 pt-1">
+                        {finding.alternatives.slice(0, 2).map((alternative) => (
+                          <li
+                            key={alternative}
+                            className="text-xs text-red-100/75"
+                          >
+                            - {alternative}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {redosAnalysis && (
+              <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-700">
+                <p className="text-[11px] text-slate-400">
+                  {redosAnalysis.disclaimer}
+                </p>
               </div>
             )}
           </div>

@@ -60,12 +60,19 @@ function MatchHighlight({
 }) {
   const segments = segmentsFromMatchResults(text, matchResults);
   if (!text) return null;
+  const containerTone = isMatch
+    ? variant === "denied"
+      ? "border-red-500/40"
+      : "border-green-500/40"
+    : "border-slate-700";
   const matchClass =
     variant === "denied"
       ? "bg-red-500/30 text-red-200 rounded px-0.5"
       : "bg-green-500/30 text-green-200 rounded px-0.5";
   return (
-    <div className="mt-1.5 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
+    <div
+      className={`mt-1.5 rounded-lg border bg-slate-900/60 px-3 py-2 ${containerTone}`}
+    >
       <div className="text-xs text-slate-400 mb-1">{label}</div>
       <div className="font-mono text-sm text-slate-200 break-all leading-relaxed">
         {segments.map((seg, i) =>
@@ -122,7 +129,10 @@ function MatchDetails({
       </div>
       <ul className="space-y-2 max-h-32 overflow-y-auto">
         {matchResults.map((m, i) => (
-          <li key={i} className={`text-xs font-mono text-slate-300 ${borderClass}`}>
+          <li
+            key={i}
+            className={`text-xs font-mono text-slate-300 ${borderClass}`}
+          >
             <span className="text-slate-500">#{m.index}</span> [{m.start},{" "}
             {m.end}) &ldquo;{m.match}&rdquo;
             {m.groups.length > 0 && (
@@ -156,6 +166,9 @@ export default function SandboxPane() {
     stopDebug,
     debugNextStep,
     debugPrevStep,
+    redosAnalysis,
+    performanceProbe,
+    runPerformanceProbe,
   } = useRegexStore();
 
   const [safeResult, setSafeResult] = useState<{
@@ -284,6 +297,86 @@ export default function SandboxPane() {
           )}
         </div>
 
+        <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <p className="text-xs font-medium text-slate-300">
+                Performance probe
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Times regex checks on sample and stress inputs.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={runPerformanceProbe}
+              className="text-xs px-2 py-1.5 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+            >
+              Run probe
+            </button>
+          </div>
+
+          {redosAnalysis && (
+            <p className="text-[11px] text-slate-400">
+              Static risk: {redosAnalysis.riskLevel.toUpperCase()} (
+              {redosAnalysis.summary})
+            </p>
+          )}
+
+          {performanceProbe && (
+            <div className="space-y-1.5">
+              <div className="text-xs">
+                {performanceProbe.observedSlowdown ? (
+                  <span className="text-red-300 font-medium">
+                    Observed slowdown (≥ {performanceProbe.thresholdMs}ms)
+                  </span>
+                ) : (
+                  <span className="text-green-300 font-medium">
+                    No slowdown observed under {performanceProbe.thresholdMs}ms
+                  </span>
+                )}
+              </div>
+              {performanceProbe.samples.length > 0 && (
+                <ul className="space-y-1 max-h-28 overflow-y-auto">
+                  {performanceProbe.samples.map((sample) => (
+                    <li
+                      key={sample.id}
+                      className="text-[11px] text-slate-300 font-mono flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span className="truncate">{sample.label}</span>
+                        {sample.timedOut ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300">
+                            Slow
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/50 text-emerald-300">
+                            OK
+                          </span>
+                        )}
+                        {sample.error && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300">
+                            Error
+                          </span>
+                        )}
+                        {!sample.error && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-slate-600 text-slate-300">
+                            {sample.matched ? "Match" : "No match"}
+                          </span>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-slate-400">
+                        {sample.durationMs.toFixed(2)}ms / {sample.inputSize}{" "}
+                        chars
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Batch list: one line = one entity */}
         {batchTestStrings.length > 0 && (
           <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-3">
@@ -298,7 +391,9 @@ export default function SandboxPane() {
                   <li key={i} className="flex items-center gap-1 group">
                     <span
                       className={
-                        res.matches ? "text-green-400 shrink-0" : "text-slate-500 shrink-0"
+                        res.matches
+                          ? "text-green-400 shrink-0"
+                          : "text-slate-500 shrink-0"
                       }
                       title={res.matches ? "Matches regex" : "No match"}
                     >

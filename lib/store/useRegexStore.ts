@@ -2,6 +2,12 @@ import { create } from "zustand";
 import type { RootNode, Features, AstNode } from "regjsparser";
 import { parseRegex } from "../parser/regexParser";
 import { buildDebugSteps, type DebugStep } from "../debug/regexDebugTracer";
+import {
+  analyzeReDosRisk,
+  type RedosFinding,
+  type RedosAnalysis,
+} from "../security/redosAnalyzer";
+import { getStressInputsForKinds } from "../security/redosSuggestions";
 
 export interface MatchResultItem {
   index: number;
@@ -15,6 +21,91 @@ export interface MatchAllResult {
   matches: boolean;
   error: string | null;
   matchResults: MatchResultItem[];
+}
+
+export interface PerformanceProbeSample {
+  id: string;
+  label: string;
+  inputSize: number;
+  durationMs: number;
+  timedOut: boolean;
+  matched: boolean;
+  error: string | null;
+}
+
+export interface PerformanceProbeResult {
+  thresholdMs: number;
+  observedSlowdown: boolean;
+  samples: PerformanceProbeSample[];
+}
+
+const PERFORMANCE_PROBE_THRESHOLD_MS = 50;
+const PERFORMANCE_PROBE_MAX_INPUT = 4000;
+
+function nowMs(): number {
+  if (typeof performance !== "undefined") {
+    return performance.now();
+  }
+  return Date.now();
+}
+
+function cleanRegexInput(rawRegex: string): { pattern: string; flags: string } {
+  let pattern = rawRegex.trim();
+  let flags = "";
+
+  if (pattern.startsWith("/")) {
+    const lastSlash = pattern.lastIndexOf("/");
+    if (lastSlash > 0) {
+      flags = pattern.slice(lastSlash + 1);
+      pattern = pattern.slice(1, lastSlash);
+    }
+  }
+
+  return { pattern, flags };
+}
+
+function sanitizeProbeFlags(flags: string): string {
+  const allowedFlags = new Set(["d", "i", "m", "s", "u", "v", "y"]);
+  return [...new Set(flags)].filter((flag) => allowedFlags.has(flag)).join("");
+}
+
+function buildProbeInputs(
+  safeString: string,
+  deniedString: string,
+  findings: RedosFinding[],
+): Array<{ id: string; label: string; value: string }> {
+  const samples: Array<{ id: string; label: string; value: string }> = [];
+
+  if (safeString.trim()) {
+    samples.push({
+      id: "safe",
+      label: "Safe input",
+      value: safeString.slice(0, PERFORMANCE_PROBE_MAX_INPUT),
+    });
+  }
+
+  if (deniedString.trim()) {
+    samples.push({
+      id: "denied",
+      label: "Denied input",
+      value: deniedString.slice(0, PERFORMANCE_PROBE_MAX_INPUT),
+    });
+  }
+
+  const stressInputs = getStressInputsForKinds(
+    findings.map((finding) => finding.kind),
+  );
+  if (stressInputs.length > 0) {
+    samples.push(...stressInputs);
+  } else if (samples.length === 0) {
+    samples.push({
+      id: "stress-default",
+      label: "Generated stress input",
+      value: `${"a".repeat(2048)}!`,
+    });
+  }
+
+  return samples;
 }
 
 interface RegexStore {
@@ -42,13 +133,18 @@ interface RegexStore {
   debugStepIndex: number;
   debugTestString: string;
 
+  // Security analysis state
+  redosAnalysis: RedosAnalysis | null;
+  performanceProbe: PerformanceProbeResult | null;
+
   // Actions
   setRegexInput: (input: string) => void;
   setSafeString: (input: string) => void;
   setDeniedString: (input: string) => void;
   setBatchTestStrings: (lines: string[]) => void;
   clearBatchTestStrings: () => void;
-  parseRegex: () => void;
+  analyzeReDos: () => void;
+  runPerformanceProbe: () => void;
   setSelectedNode: (nodeId: string | null) => void;
   setSelectedEditorRange: (
     range: { start: number; end: number } | null,
@@ -86,13 +182,21 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
   debugSteps: [],
   debugStepIndex: 0,
   debugTestString: "",
+  redosAnalysis: null,
+  performanceProbe: null,
 
   // Actions
   setRegexInput: (input: string) => {
     set({ regexInput: input });
     // Auto-parse on input change (will be debounced in component)
     const result = parseRegex(input);
-    set({ ast: result.ast, error: result.error });
+    const redosAnalysis = analyzeReDosRisk(result.ast);
+    set({
+      ast: result.ast,
+      error: result.error,
+      redosAnalysis,
+      performanceProbe: null,
+    });
   },
 
   setSafeString: (input: string) => {
@@ -111,10 +215,68 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
     set({ batchTestStrings: [] });
   },
 
-  parseRegex: () => {
-    const { regexInput } = get();
-    const result = parseRegex(regexInput);
-    set({ ast: result.ast, error: result.error });
+  analyzeReDos: () => {
+    const { ast } = get();
+    set({ redosAnalysis: analyzeReDosRisk(ast) });
+  },
+
+  runPerformanceProbe: () => {
+    const { regexInput, safeString, deniedString, redosAnalysis } = get();
+    if (!regexInput.trim()) {
+      set({
+        performanceProbe: {
+          thresholdMs: PERFORMANCE_PROBE_THRESHOLD_MS,
+          observedSlowdown: false,
+          samples: [],
+        },
+      });
+      return;
+    }
+
+    const { pattern, flags } = cleanRegexInput(regexInput);
+    const sanitizedFlags = sanitizeProbeFlags(flags);
+    const probeInputs = buildProbeInputs(
+      safeString,
+      deniedString,
+      redosAnalysis?.findings ?? [],
+    );
+
+    const samples: PerformanceProbeSample[] = probeInputs.map((probeInput) => {
+      const input = probeInput.value.slice(0, PERFORMANCE_PROBE_MAX_INPUT);
+      const start = nowMs();
+      let matched = false;
+      let error: string | null = null;
+
+      try {
+        const regex = new RegExp(pattern, sanitizedFlags);
+        matched = regex.test(input);
+      } catch (probeError) {
+        error =
+          probeError instanceof Error
+            ? probeError.message
+            : "Invalid regex pattern";
+      }
+
+      const durationMs = nowMs() - start;
+
+      return {
+        id: probeInput.id,
+        label: probeInput.label,
+        inputSize: input.length,
+        durationMs,
+        timedOut: durationMs >= PERFORMANCE_PROBE_THRESHOLD_MS,
+        matched,
+        error,
+      };
+    });
+
+    set({
+      performanceProbe: {
+        thresholdMs: PERFORMANCE_PROBE_THRESHOLD_MS,
+        observedSlowdown: samples.some((sample) => sample.timedOut),
+        samples,
+      },
+    });
   },
 
   setSelectedNode: (nodeId: string | null) => {

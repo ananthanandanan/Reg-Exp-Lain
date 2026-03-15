@@ -5,8 +5,13 @@ import { useRegexStore } from "@/lib/store/useRegexStore";
 import { useDebouncedCallback } from "use-debounce";
 
 export default function EditorPane() {
-  const { regexInput, error, setRegexInput, setSelectedEditorRange } =
-    useRegexStore();
+  const {
+    regexInput,
+    error,
+    redosAnalysis,
+    setRegexInput,
+    setSelectedEditorRange,
+  } = useRegexStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const debouncedParse = useDebouncedCallback(() => {
@@ -31,6 +36,18 @@ export default function EditorPane() {
     }
   };
 
+  const riskTone =
+    redosAnalysis?.riskLevel === "high"
+      ? "border-red-500/60 bg-red-500/10 text-red-300"
+      : redosAnalysis?.riskLevel === "medium"
+        ? "border-amber-500/60 bg-amber-500/10 text-amber-200"
+        : "border-emerald-500/50 bg-emerald-500/10 text-emerald-200";
+
+  const riskLabel = redosAnalysis
+    ? redosAnalysis.riskLevel.charAt(0).toUpperCase() +
+      redosAnalysis.riskLevel.slice(1)
+    : null;
+
   return (
     <div className="flex flex-col h-full">
       <label className="text-sm font-medium text-slate-300 mb-2 px-4 pt-4">
@@ -52,6 +69,19 @@ export default function EditorPane() {
         {error && (
           <div className="mt-2 text-xs text-red-400 font-medium">
             Error: {error}
+          </div>
+        )}
+        {!error && redosAnalysis && regexInput.trim() && (
+          <div
+            className={`mt-2 rounded-md border px-3 py-2 text-xs ${riskTone}`}
+          >
+            <div className="font-semibold">
+              ReDoS risk: {riskLabel}
+              {redosAnalysis.findings.length > 0
+                ? ` (${redosAnalysis.findings.length} finding${redosAnalysis.findings.length > 1 ? "s" : ""})`
+                : ""}
+            </div>
+            <div className="mt-1 opacity-90">{redosAnalysis.summary}</div>
           </div>
         )}
       </div>
