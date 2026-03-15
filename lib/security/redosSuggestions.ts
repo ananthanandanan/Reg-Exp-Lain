@@ -51,11 +51,11 @@ export function getStressInputsForKinds(
   return uniqueKinds.map((kind) => {
     const bundle = getSuggestionBundle(kind);
     const seed = bundle.stressSeeds[0] ?? "a";
-    const value = `${seed.repeat(2048)}!`;
+    const value = `${seed.repeat(64)}!`;
 
     return {
       id: `stress-${kind}`,
-      label: `Stress: ${kind.replace(/-/g, " ")}`,
+      label: `Quick stress: ${kind.replace(/-/g, " ")}`,
       value,
     };
   });

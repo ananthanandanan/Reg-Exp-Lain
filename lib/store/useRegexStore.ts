@@ -34,13 +34,16 @@ export interface PerformanceProbeSample {
 }
 
 export interface PerformanceProbeResult {
+  mode: "quick";
   thresholdMs: number;
   observedSlowdown: boolean;
+  skipped: boolean;
+  skipReason: string | null;
   samples: PerformanceProbeSample[];
 }
 
-const PERFORMANCE_PROBE_THRESHOLD_MS = 50;
-const PERFORMANCE_PROBE_MAX_INPUT = 4000;
+const PERFORMANCE_PROBE_THRESHOLD_MS = 25;
+const PERFORMANCE_PROBE_MAX_INPUT = 512;
 
 function nowMs(): number {
   if (typeof performance !== "undefined") {
@@ -100,8 +103,8 @@ function buildProbeInputs(
   } else if (samples.length === 0) {
     samples.push({
       id: "stress-default",
-      label: "Generated stress input",
-      value: `${"a".repeat(2048)}!`,
+      label: "Quick stress input",
+      value: `${"a".repeat(64)}!`,
     });
   }
 
@@ -225,8 +228,26 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
     if (!regexInput.trim()) {
       set({
         performanceProbe: {
+          mode: "quick",
           thresholdMs: PERFORMANCE_PROBE_THRESHOLD_MS,
           observedSlowdown: false,
+          skipped: false,
+          skipReason: null,
+          samples: [],
+        },
+      });
+      return;
+    }
+
+    if (redosAnalysis?.riskLevel === "high") {
+      set({
+        performanceProbe: {
+          mode: "quick",
+          thresholdMs: PERFORMANCE_PROBE_THRESHOLD_MS,
+          observedSlowdown: false,
+          skipped: true,
+          skipReason:
+            "Probe skipped for high-risk pattern to avoid UI freeze. Use static warning and rewrite suggestions.",
           samples: [],
         },
       });
@@ -272,8 +293,11 @@ export const useRegexStore = create<RegexStore>((set, get) => ({
 
     set({
       performanceProbe: {
+        mode: "quick",
         thresholdMs: PERFORMANCE_PROBE_THRESHOLD_MS,
         observedSlowdown: samples.some((sample) => sample.timedOut),
+        skipped: false,
+        skipReason: null,
         samples,
       },
     });

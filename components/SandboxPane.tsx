@@ -301,10 +301,10 @@ export default function SandboxPane() {
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
               <p className="text-xs font-medium text-slate-300">
-                Performance probe
+                Quick performance probe
               </p>
               <p className="text-[11px] text-slate-500">
-                Times regex checks on sample and stress inputs.
+                Safe-mode timing on small sample and stress inputs.
               </p>
             </div>
             <button
@@ -312,7 +312,7 @@ export default function SandboxPane() {
               onClick={runPerformanceProbe}
               className="text-xs px-2 py-1.5 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-slate-100 transition-colors"
             >
-              Run probe
+              Run quick probe
             </button>
           </div>
 
@@ -325,54 +325,62 @@ export default function SandboxPane() {
 
           {performanceProbe && (
             <div className="space-y-1.5">
-              <div className="text-xs">
-                {performanceProbe.observedSlowdown ? (
-                  <span className="text-red-300 font-medium">
-                    Observed slowdown (≥ {performanceProbe.thresholdMs}ms)
-                  </span>
-                ) : (
-                  <span className="text-green-300 font-medium">
-                    No slowdown observed under {performanceProbe.thresholdMs}ms
-                  </span>
-                )}
-              </div>
-              {performanceProbe.samples.length > 0 && (
-                <ul className="space-y-1 max-h-28 overflow-y-auto">
-                  {performanceProbe.samples.map((sample) => (
-                    <li
-                      key={sample.id}
-                      className="text-[11px] text-slate-300 font-mono flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0 flex items-center gap-2">
-                        <span className="truncate">{sample.label}</span>
-                        {sample.timedOut ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300">
-                            Slow
-                          </span>
-                        ) : (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/50 text-emerald-300">
-                            OK
-                          </span>
-                        )}
-                        {sample.error && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300">
-                            Error
-                          </span>
-                        )}
-                        {!sample.error && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-slate-600 text-slate-300">
-                            {sample.matched ? "Match" : "No match"}
-                          </span>
-                        )}
-                      </div>
-                      <span className="shrink-0 text-slate-400">
-                        {sample.durationMs.toFixed(2)}ms / {sample.inputSize}{" "}
-                        chars
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+              {performanceProbe.skipped ? (
+                <div className="text-xs text-amber-300 font-medium">
+                  {performanceProbe.skipReason}
+                </div>
+              ) : (
+                <div className="text-xs">
+                  {performanceProbe.observedSlowdown ? (
+                    <span className="text-red-300 font-medium">
+                      Observed slowdown (≥ {performanceProbe.thresholdMs}ms)
+                    </span>
+                  ) : (
+                    <span className="text-green-300 font-medium">
+                      No slowdown observed under {performanceProbe.thresholdMs}
+                      ms
+                    </span>
+                  )}
+                </div>
               )}
+              {!performanceProbe.skipped &&
+                performanceProbe.samples.length > 0 && (
+                  <ul className="space-y-1 max-h-28 overflow-y-auto">
+                    {performanceProbe.samples.map((sample) => (
+                      <li
+                        key={sample.id}
+                        className="text-[11px] text-slate-300 font-mono flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span className="truncate">{sample.label}</span>
+                          {sample.timedOut ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300">
+                              Slow
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/50 text-emerald-300">
+                              OK
+                            </span>
+                          )}
+                          {sample.error && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/50 text-red-300">
+                              Error
+                            </span>
+                          )}
+                          {!sample.error && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-slate-600 text-slate-300">
+                              {sample.matched ? "Match" : "No match"}
+                            </span>
+                          )}
+                        </div>
+                        <span className="shrink-0 text-slate-400">
+                          {sample.durationMs.toFixed(2)}ms / {sample.inputSize}{" "}
+                          chars
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </div>
           )}
         </div>
